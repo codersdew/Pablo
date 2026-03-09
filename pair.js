@@ -937,15 +937,7 @@ function setupCommandHandlers(socket, number) {
 switch (command) {
 
 // AUTO REPLY SYSTEM (MULTI WORD SUPPORT) - runs outside cases, via default fallthrough
-    //================gdrive and news ===============
-    //Cricker
-//google
-//weather
-//savecontact
-//grouplink
-//hidetag
-//translate
-//setlogo 
+    //================gdrive and news ===========
                 
 //📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
 case 'status':
