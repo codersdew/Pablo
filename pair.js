@@ -932,7 +932,21 @@ function setupCommandHandlers(socket, number) {
                         return;
                     }
                 }  
-                                
+              
+                   const fs = require("fs")
+
+const dbPath = "./data/msg.json"
+let db = JSON.parse(fs.readFileSync(dbPath))
+
+const ownerNumber = "94789088223"
+const sender = msg.key.participant || msg.key.remoteJid
+const isOwner = sender.includes(ownerNumber)
+
+const messageText = (msg.message?.conversation || 
+msg.message?.extendedTextMessage?.text || '').toLowerCase()
+
+const args = messageText.split(" ")
+const command = args[0]             
 
 switch (command) {
 \\〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️〽️
@@ -951,7 +965,6 @@ msg.message?.extendedTextMessage?.text || '').toLowerCase()
 const args = messageText.split(" ")
 const command = args[0]
 
-switch(command){
 
 // AUTOREPLY ON/OFF
 case ".autoreply":{
