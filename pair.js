@@ -933,9 +933,7 @@ function setupCommandHandlers(socket, number) {
                     }
                 }  
               
-                   const fs = require("fs")
-
-
+                   
 switch (command) {
 
 // AUTO REPLY SYSTEM (MULTI WORD SUPPORT) - runs outside cases, via default fallthrough
