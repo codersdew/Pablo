@@ -940,6 +940,113 @@ switch (command) {
     //================gdrive and news ===========
                 
 //📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍📍
+    case 'mediafire':
+case 'mf':
+case 'mfdl': {
+    try {
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
+        const url = text.split(" ")[1]; // .mediafire <link>
+
+        // ✅ Load bot name dynamically
+        const sanitized = (number || '').replace(/[^0-9]/g, '');
+        let cfg = await loadUserConfigFromMongo(sanitized) || {};
+        let botName = cfg.botName || '𝐏𝐀𝐁𝐋𝐎 𝐏𝐑𝐈𝐕𝐀𝐓𝐄';
+
+        // ✅ Fake Meta contact message (like Facebook style)
+        const shonux = {
+            key: {
+                remoteJid: "status@broadcast",
+                participant: "0@s.whatsapp.net",
+                fromMe: false,
+                id: "META_AI_FAKE_ID_MEDIAFIRE"
+            },
+            message: {
+                contactMessage: {
+                    displayName: botName,
+                    vcard: `BEGIN:VCARD
+VERSION:3.0
+N:${botName};;;;
+FN:${botName}
+ORG:Meta Platforms
+TEL;type=CELL;type=VOICE;waid=13135550002:+1 313 555 0002
+END:VCARD`
+                }
+            }
+        };
+
+        if (!url) {
+            return await socket.sendMessage(sender, {
+                text: '🚫 *Please send a MediaFire link.*\n\nExample: .mediafire <url>'
+            }, { quoted: shonux });
+        }
+
+        // ⏳ Notify start
+        await socket.sendMessage(sender, { react: { text: '📥', key: msg.key } });
+        await socket.sendMessage(sender, { text: '*⏳ Fetching MediaFire file info...*' }, { quoted: shonux });
+
+        // 🔹 Call API
+        let api = `https://tharuzz-ofc-apis.vercel.app/api/download/mediafire?url=${encodeURIComponent(url)}`;
+        let { data } = await axios.get(api);
+
+        if (!data.success || !data.result) {
+            return await socket.sendMessage(sender, { text: '❌ *Failed to fetch MediaFire file.*' }, { quoted: shonux });
+        }
+
+        const result = data.result;
+        const title = result.title || result.filename;
+        const filename = result.filename;
+        const fileSize = result.size;
+        const downloadUrl = result.url;
+
+        const caption = `📦 *${title}*\n\n` +
+                        `📁 *Filename:* ${filename}\n` +
+                        `📏 *Size:* ${fileSize}\n` +
+                        `🌐 *From:* ${result.from}\n` +
+                        `📅 *Date:* ${result.date}\n` +
+                        `🕑 *Time:* ${result.time}\n\n` +
+                        `✅ Downloaded by ${botName}`;
+
+        // 🔹 Send file automatically (document type for .zip etc.)
+        await socket.sendMessage(sender, {
+            document: { url: downloadUrl },
+            fileName: filename,
+            mimetype: 'application/octet-stream',
+            caption: caption
+        }, { quoted: shonux });
+
+    } catch (err) {
+        console.error("Error in MediaFire downloader:", err);
+
+        // ✅ In catch also send Meta mention style
+        const sanitized = (number || '').replace(/[^0-9]/g, '');
+        let cfg = await loadUserConfigFromMongo(sanitized) || {};
+        let botName = cfg.botName || '𝐏𝐀𝐁𝐋𝐎 𝐏𝐑𝐈𝐕𝐀𝐓𝐄';
+
+        const shonux = {
+            key: {
+                remoteJid: "status@broadcast",
+                participant: "0@s.whatsapp.net",
+                fromMe: false,
+                id: "META_AI_FAKE_ID_MEDIAFIRE"
+            },
+            message: {
+                contactMessage: {
+                    displayName: botName,
+                    vcard: `BEGIN:VCARD
+VERSION:3.0
+N:${botName};;;;
+FN:${botName}
+ORG:Meta Platforms
+TEL;type=CELL;type=VOICE;waid=13135550002:+1 313 555 0002
+END:VCARD`
+                }
+            }
+        };
+
+        await socket.sendMessage(sender, { text: '*❌ Internal Error. Please try again later.*' }, { quoted: shonux });
+    }
+    break;
+}
 case 'status':
 case 'p':
 case 'system': {
