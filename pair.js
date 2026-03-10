@@ -993,6 +993,151 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+case 'lakiya':
+    if (!args.length) {
+        await socket.sendMessage(sender, {
+            image: { url: 'https://files.catbox.moe/y6128a.jpeg'},
+            caption: formatMessage(
+                '❌ ERROR',
+                '*Need YouTube URL or Song Title*',
+                '> 𝛲𝛩𝑊𝛯𝑅𝐷 𝐵𝑌 𝐿𝛥𝛫𝛪𝑌𝛥 𝛭𝐷'
+            )
+        }, { quoted: msg });
+        break;
+    }
+
+    const songQuery = args.join(' ');
+
+    const isValidYouTubeUrl = (url) => {
+        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+        return youtubeRegex.test(url);
+    };
+
+    if (songQuery.startsWith('http') && !isValidYouTubeUrl(songQuery)) {
+        await socket.sendMessage(sender, {
+            image: { url: 'https://files.catbox.moe/y6128a.jpeg' },
+            caption: formatMessage(
+                '❌ ERROR',
+                '*Invalid YouTube URL*',
+                '> 𝛲𝛩𝑊𝛯𝑅𝐷 𝐵𝑌 𝐿𝛥𝛫𝛪𝑌𝛥 𝛭𝐷'
+            )
+        }, { quoted: msg });
+        break;
+    }
+
+    try {
+        let videoUrl = songQuery;
+        let videoTitle = songQuery;
+        if (!isValidYouTubeUrl(songQuery)) {
+            const search = await yts(songQuery);
+            const data = search.videos[0];
+            if (!data) {
+                await socket.sendMessage(sender, {
+                    image: { url:'https://files.catbox.moe/y6128a.jpeg'},
+                    caption: formatMessage('❌ NO RESULTS', '*No results found*', `LAKIYA`)
+                }, { quoted: msg });
+                break;
+            }
+            videoUrl = data.url;
+            videoTitle = data.title;
+        }
+        const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=${encodeURIComponent(videoUrl)}`;
+        const response = await axios.get(apiUrl);
+        const apiData = response.data;
+
+        if (!apiData.status || !apiData.result) {
+            throw new Error('Invalid API response');
+        }
+
+        const result = apiData.result;
+
+        const desc = formatMessage(
+            `🎵 𝗟𝗔𝗞𝗜𝗬𝗔 𝐌𝐔𝐒𝐈𝐂 🎵`,
+            `*╭━ \`🎵 YOUTUBE AUDIO INFO 🎵\` ━*
+*| \`🍀 Title\`     :* ${result.title || 'Not available'} 🙇‍♂️🫀🎧
+*| \`⏰ Duration\`  :* ${result.duration ? result.duration + ' seconds' : 'N/A'}
+*| \`👀 Views\`     :* ${search?.videos[0]?.views?.toLocaleString() || 'N/A'}
+*| \`📅 Uploaded\`  :* ${search?.videos[0]?.ago || 'N/A'}
+*| \`🎵 Type\`      :* Audio Convert
+*| \`🎇 Channel\`   :* ${result.channel || 'Not available'}
+*| \`🔗 URL\`       :* ${videoUrl}
+*╰━━━━━━━━━━━━━━━🌸◦•◦❥•*
+
+*💌 𝗥𝗲𝗽𝗹𝘆 𝗯𝗲𝗹𝗼𝘄 𝗻𝘂𝗺𝗯𝗲𝗿 𝘁𝗼 𝗱𝗼𝘄𝗻𝗹𝗼𝗮𝗱:*
+
+1️⃣ ║❯❯ Download Audio 🎧
+2️⃣ ║❯❯ Download Document 📁
+3️⃣ ║❯❯ Download Voice 🎤
+`,
+            `LAKIYA MD`
+        );
+
+        const sentMsg = await socket.sendMessage(sender, {
+            image: { url: result.thumbnail },
+            caption: desc
+        }, { quoted: msg });
+
+        const listener = async (messageUpdate) => {
+            const mek = messageUpdate.messages[0];
+            if (!mek.message) return;
+
+            const messageType = mek.message.conversation || mek.message.extendedTextMessage?.text;
+            const isReplyToSentMsg = mek.message.extendedTextMessage && mek.message.extendedTextMessage.contextInfo.stanzaId === sentMsg.key.id;
+
+            if (isReplyToSentMsg && ['1', '2', '3'].includes(messageType)) {
+                await socket.sendMessage(sender, { react: { text: '⬇️', key: mek.key } });
+
+                try {
+                    const downloadUrl = result.download_url;
+                    const fileName = result.filename || 'LAKIYA SONG.mp3';
+
+                    if (messageType === '1') {
+                    
+                        await socket.sendMessage(sender, {
+                            audio: { url: downloadUrl },
+                            mimetype: 'audio/mpeg'
+                        }, { quoted: mek });
+                    } 
+                    else if (messageType === '2') {
+                        await socket.sendMessage(sender, {
+                            document: { url: downloadUrl },
+                            mimetype: 'audio/mp3',
+                            fileName: fileName
+                        }, { quoted: mek });
+                    } 
+                    else if (messageType === '3') {
+                        await socket.sendMessage(sender, {
+                            audio: { url: downloadUrl },
+                            mimetype: 'audio/mpeg',
+                            ptt: true
+                        }, { quoted: mek });
+                    }
+
+                    await socket.sendMessage(sender, { react: { text: '✅', key: mek.key } });
+                    socket.ev.off('messages.upsert', listener);
+
+                } catch (error) {
+                    console.error('Download error:', error);
+                    await socket.sendMessage(sender, {
+                        image: { url: ' ' },
+                        caption: formatMessage('❌ ERROR', `*Download failed*: ${error.message}`, `Laksidu`)
+                    }, { quoted: mek });
+                    socket.ev.off('messages.upsert', listener);
+                }
+            }
+        };
+
+        socket.ev.on('messages.upsert', listener);
+
+    } catch (error) {
+        console.error('Song command error:', error);
+        await socket.sendMessage(sender, {
+            image: { url:'https://files.catbox.moe/y6128a.jpeg'},
+            caption: formatMessage('❌ ERROR', `*Error*: ${error.message}`, `LAKIYA`)
+        }, { quoted: msg });
+    }
+    break;
+		
  case 'status':
 case 'p':
 case 'system': {
