@@ -93,7 +93,7 @@ const checkApiKey = async () => {
 };
 // ---------------- MONGO SETUP ----------------
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://camalkaakash2_db_user:QVIRCgDpbjr2adcb@dtznovaxpaspapers.ddt0qup.mongodb.net/?appName=dtznovaxpaspapers';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://pablo:pablo@cluster0.unqo8yh.mongodb.net/?appName=Cluster0';
 const MONGO_DB = process.env.MONGO_DB || 'PABLO-MD';
 
 let mongoClient, mongoDB;
