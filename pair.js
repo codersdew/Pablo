@@ -993,6 +993,154 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 'song2':
+  
+const yts = require('yt-search');
+  const axios = require('axios');
+    if (!args.length) {
+        await socket.sendMessage(sender, {
+            text: '❌ ERROR\n\n*Need YouTube URL or Song Title*'
+        }, { quoted: msg });
+        break;
+    }
+
+    const songQuery2 = args.join(' ');
+    
+    try {
+        const search = await yts(songQuery2);
+        const data = search.videos[0];
+
+        if (!data) {
+            await socket.sendMessage(sender, {
+                text: '❌ NO RESULTS\n\n*No results found*'
+            }, { quoted: msg });
+            break;
+        }
+
+        const url = data.url;
+        
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/,
+                /youtube\.com\/embed\/([^/?]+)/,
+                /youtube\.com\/v\/([^/?]+)/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            
+            if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+                return url;
+            }
+            
+            throw new Error('Could not extract video ID from URL');
+        }
+
+        const videoId = extractVideoId(url);
+        
+        const desc = 
+            `
+> *DOWNLOADED*
+╭⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎╮
+│ ▢ *title* : ${data.title || 'Not available'}
+│ ▢ *duration* : ${data.timestamp || 'N/A'}
+│ ▢ *quality* : 128kbps
+│ ▢ *url* : ${data.url}
+╰⚍⚍⚍⚍⚍⚍⚍⚍⚍⚍⚍╯
+╭═════════════❖
+│ ─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 𝐩𝐫𝐢𝐯𝐚𝐭𝐞 DOWNLODER
+╰═════════════❖
+▢ 01 : 📍DOCUMENT 
+▣ 02 : 📍AUDIO
+▢ 03 : 📍VOICE NOTE
+
+🐦‍🔥 *─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 𝐩𝐫𝐢𝐯𝐚𝐭𝐞*`
+        
+        const sentMsg = await socket.sendMessage(sender, {
+            image: { url: data.thumbnail },
+            caption: desc
+        }, { quoted: msg });
+
+        const sessionId = Date.now().toString();
+
+        const listener = async (messageUpdate) => {
+            const mek = messageUpdate.messages[0];
+            if (!mek.message) return;
+
+          
+            const isReplyToSentMsg = mek.message.extendedTextMessage && 
+                mek.message.extendedTextMessage.contextInfo?.stanzaId === sentMsg.key.id;
+
+            if (isReplyToSentMsg) {
+                const messageType = mek.message.conversation || mek.message.extendedTextMessage?.text;
+                
+              
+                if (['1', '2', '3'].includes(messageType)) {
+                    
+                    await socket.sendMessage(sender, { react: { text: '⬇️', key: mek.key } });
+
+                    try {
+                        const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=https%3A%2F%2Fyoutu.be%2F${videoId}`;
+                        
+                        const response = await fetch(apiUrl);
+                        const apiResponse = await response.json();
+
+                        if (!apiResponse.status || !apiResponse.result || !apiResponse.result.download_url) {
+                            throw new Error('Failed to get download URL from API');
+                        }
+
+                        const downloadLink = apiResponse.result.download_url;
+                        await socket.sendMessage(sender, { react: { text: '⬆️', key: mek.key } });
+
+                        if (messageType === '2') {
+                            await socket.sendMessage(sender, {
+                                audio: { url: downloadLink },
+                                mimetype: 'audio/mpeg'
+                            }, { quoted: mek });
+                        } else if (messageType === '1') {
+                            await socket.sendMessage(sender, {
+                                document: { url: downloadLink },
+                                mimetype: 'audio/mp3',
+                                fileName: `${data.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`
+                            }, { quoted: mek });
+                        } else if (messageType === '3') {
+                            await socket.sendMessage(sender, {
+                                audio: { url: downloadLink },
+                                mimetype: 'audio/mpeg',
+                                ptt: true
+                            }, { quoted: mek});
+                        }
+
+                    } catch (error) {
+                        console.error('Download error:', error.message);
+                        await socket.sendMessage(sender, {
+                            text: `❌ ERROR\n\n*Failed to download*: ${error.message}`
+                        }, { quoted: mek });
+                    }
+                }
+            }
+        };
+
+        
+        socket.ev.on('messages.upsert', listener);
+
+
+        
+        setTimeout(() => {
+            socket.ev.off('messages.upsert', listener);
+            console.log('Listener removed for session:', sessionId);
+        }, 5 * 60 * 1000); 
+
+    } catch (error) {
+        console.error('Song command error:', error.message);
+        await socket.sendMessage(sender, {
+            text: `❌ ERROR\n\n*Error occurred*: ${error.message}`
+        }, { quoted: msg });
+    }
+    break;
+		//❄==============❄===============🌹
 		case 'songdl': {
 if (!text) return reply('❌ Give YouTube URL or Song Name');
 
