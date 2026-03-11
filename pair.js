@@ -993,6 +993,37 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 'getpp': {
+    const targetJid = msg.message?.extendedTextMessage?.contextInfo?.participant || sender;
+    if (!targetJid) return reply('⚠️ Please reply to a user message.');
+
+    const number = targetJid.split('@')[0];
+
+    // get profile picture
+    const userPicUrl = await socket.profilePictureUrl(targetJid, 'image').catch(() => null);
+
+    // get whatsapp name
+    const userName = await socket.getName(targetJid);
+
+    // vcard create
+    const vcard =
+        'BEGIN:VCARD\n' +
+        'VERSION:3.0\n' +
+        `FN:${userName}\n` +
+        `TEL;type=CELL;type=VOICE;waid=${number}:${number}\n` +
+        'END:VCARD';
+
+    await socket.sendMessage(msg.key.remoteJid, {
+        image: userPicUrl ? { url: userPicUrl } : undefined,
+        caption: `🖼️ *${userName} Profile*\n📞 Contact card below`,
+        contacts: {
+            displayName: userName,
+            contacts: [{ vcard }]
+        }
+    }, { quoted: msg });
+}
+break;
+//====================================================================================//
 case 'lakiya':
     if (!args.length) {
         await socket.sendMessage(sender, {
