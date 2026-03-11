@@ -1226,9 +1226,8 @@ case 'system': {
     break;
 }
 
-case 'tourl':
+		case 'tourl':
 case 'url':
-case 'tourl':
 case 'upload': {
     const axios = require('axios');
     const FormData = require('form-data');
@@ -1249,7 +1248,7 @@ case 'upload': {
     // Fake Quote for Style
     const metaQuote = {
         key: { remoteJid: "status@broadcast", participant: "0@s.whatsapp.net", fromMe: false, id: "META_MEDIA" },
-        message: { contactMessage: { displayName: "─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 MEDIA UPLOADER", vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Catbox\nORG:Upload Service\nEND:VCARD` } }
+        message: { contactMessage: { displayName: "BESTIE MEDIA UPLOADER", vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Catbox\nORG:Upload Service\nEND:VCARD` } }
     };
 
     let mediaType;
@@ -1300,6 +1299,7 @@ case 'upload': {
 
 📂 *Type:* ${typeStr}
 📊 *Size:* ${fileSize}
+
 🚀 *Url:* ${mediaUrl}
 
 ${footer}`;
@@ -1324,7 +1324,6 @@ ${footer}`;
     }
 }
 break;
-
 case 'deladmin': {
   if (!args || args.length === 0) {
     let userCfg = {};
@@ -1370,7 +1369,7 @@ case 'deladmin': {
     console.error('deladmin error', e);
     let userCfg = {};
     try { if (number && typeof loadUserConfigFromMongo === 'function') userCfg = await loadUserConfigFromMongo((number || '').replace(/[�^0-9]/g, '')) || {}; } catch(e){ userCfg = {}; }
-    const title = userCfg.botName || '💚𝐁𝐄𝐒𝐓𝐈𝐄_𝐌𝐈𝐍𝐈😘';
+    const title = userCfg.botName || '乂 ─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 𝐏𝐑𝐈𝐕𝐀𝐓𝐄 ☠️ツ';
     const shonux = {
       key: { remoteJid: "status@broadcast", participant: "0@s.whatsapp.net", fromMe: false, id: "META_AI_FAKE_ID_DELADMIN4" },
       message: { contactMessage: { displayName: title, vcard: `BEGIN:VCARD\nVERSION:3.0\nN:${title};;;;\nFN:${title}\nORG:Meta Platforms\nTEL;type=CELL;type=VOICE;waid=13135550002:+1 313 555 0002\nEND:VCARD` } }
@@ -4600,15 +4599,15 @@ socket.ev.on('creds.update', async () => {
           await delay(4000);
 
           const updatedCaption = formatMessage(
-            `╭━━━❮ 🟢 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 ❯━━━
-┃
-> 👋 _*𝐁𝐎𝐓 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘*_
+            `❄ 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 
+
+> ✅ _*𝐁𝐎𝐓 𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘*_
 ╭──╮╭──╮╭──╮╭──╮
 ╭──╯│      │╭──╯╞──╮
 ╰──╯╰──╯╰──╯╰──╯
 ╭━━━━━━━━━━━━━━━━╮
 ┃ 📱 *ɴᴜᴍʙᴇʀ :* ${sanitizedNumber}
-┃ 🚀 *ꜱᴛᴀᴛᴜꜱ :* acive yako
+┃ 🚀 *ꜱᴛᴀᴛᴜꜱ :* ʙᴏᴛ ᴀᴄᴛɪᴠᴇ
 ┃ ⏰ *ᴛɪᴍᴇ :* ${getSriLankaTimestamp()}
 ┃ 💎 *ᴏᴡɴᴇʀ :* _*KEZU || KUSHAN*_
 ┃
