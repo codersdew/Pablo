@@ -993,6 +993,78 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 's': {
+const yts = require('yt-search');
+const axios = require('axios');
+
+if (!args.length) {
+return socket.sendMessage(sender,{
+text:`❌ ERROR\n\n*Need YouTube URL or Song Title*`
+},{quoted:msg});
+}
+
+const query = args.join(" ");
+
+try {
+
+const search = await yts(query);
+const data = search.videos[0];
+
+if (!data) {
+return socket.sendMessage(sender,{
+text:`❌ NO RESULTS\n\n*No results found*`
+},{quoted:msg});
+}
+
+await socket.sendMessage(sender,{react:{text:"⬇️",key:msg.key}})
+
+const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=${encodeURIComponent(data.url)}`;
+
+const response = await axios.get(apiUrl);
+const api = response.data;
+
+if (!api.status || !api.result?.download_url) {
+throw new Error("Download URL not found");
+}
+
+const downloadLink = api.result.download_url;
+
+const caption = `
+> *DOWNLOADED*
+╭⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎⚎╮
+│ ▢ *Title* : ${data.title}
+│ ▢ *Duration* : ${data.timestamp}
+│ ▢ *Quality* : 128kbps
+│ ▢ *URL* : ${data.url}
+╰⚍⚍⚍⚍⚍⚍⚍⚍⚍⚍⚍╯
+╭═════════════❖
+│ ─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 PRIVATE DOWNLOADER
+╰═════════════❖
+🐦‍🔥 *─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 PRIVATE*`;
+
+await socket.sendMessage(sender,{
+image:{url:data.thumbnail},
+caption:caption
+},{quoted:msg});
+
+await socket.sendMessage(sender,{
+audio:{url:downloadLink},
+mimetype:"audio/mpeg",
+fileName:`${data.title.replace(/[^a-zA-Z0-9]/g,"_")}.mp3`
+},{quoted:msg});
+
+await socket.sendMessage(sender,{react:{text:"✅",key:msg.key}})
+
+} catch(e){
+console.log(e)
+socket.sendMessage(sender,{
+text:`❌ ERROR\n\n${e.message}`
+},{quoted:msg})
+}
+
+}
+break;
+		
 		case 'song':
   
 const yts = require('yt-search');
