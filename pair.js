@@ -993,7 +993,7 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
-		case 'song2':
+		case 'song':
   
 const yts = require('yt-search');
   const axios = require('axios');
@@ -1084,8 +1084,8 @@ const yts = require('yt-search');
                     try {
                         const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=https%3A%2F%2Fyoutu.be%2F${videoId}`;
                         
-                        const response = await fetch(apiUrl);
-                        const apiResponse = await response.json();
+                        const response = await axios.get(apiUrl);
+                        const apiResponse = response.data
 
                         if (!apiResponse.status || !apiResponse.result || !apiResponse.result.download_url) {
                             throw new Error('Failed to get download URL from API');
@@ -2488,7 +2488,7 @@ case 'jid': {
 }
 
 // YouTube Music Downloader Command - Download Music from YouTube - Last Update 2025-August-14
-case 'song': {
+case 'song2': {
   const yts = require('yt-search');
   const axios = require('axios');
   const apikey = "dew_EtVuyJGtlCzvZY44TP6MbXpPlAltC6VH2uGOPAJL";
