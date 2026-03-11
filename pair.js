@@ -994,103 +994,126 @@ switch (command) {
  
  //===================================CMD LINES========================================//
 		case 'songdl': {
+if (!text) return reply('❌ Give YouTube URL or Song Name');
+
 try {
 
-if (!text) {
-return reply(`🎵 *SONG DOWNLOADER*
+const isValidYouTubeUrl = (url) => {
+return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(url);
+};
 
-Usage:
+let videoUrl = text;
+let searchData = null;
 
-.songdl 1 <song name / youtube link>
-.songdl 2 <song name / youtube link>
-.songdl 3 <song name / youtube link>
+if (!isValidYouTubeUrl(text)) {
+const search = await yts(text);
+if (!search.videos.length) return reply('❌ No results found');
 
-*1️⃣ Audio*
-*2️⃣ Voice*
-*3️⃣ Document*
-
-Example:
-.songdl 1 shape of you
-.songdl 2 https://youtu.be/xxxx`)
+searchData = search.videos[0];
+videoUrl = searchData.url;
 }
 
-const args = text.split(" ")
-const type = args[0]
-const query = args.slice(1).join(" ")
+const api = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=${encodeURIComponent(videoUrl)}`;
+const res = await axios.get(api);
 
-if (!query) return reply("❌ Give song name or youtube link")
+if (!res.data.status) return reply('❌ API Error');
 
-let videoUrl = query
-let title = ""
-let duration = ""
-let thumbnail = ""
+const data = res.data.result;
 
-if (!query.includes("youtu")) {
+const caption = `
+🎵 *PABLO MUSIC DOWNLOADER*
 
-const searchApi = `https://lakiya-api-site.vercel.app/api/youtube/search?q=${encodeURIComponent(query)}`
-const res = await fetch(searchApi)
-const data = await res.json()
+╭──────────────
+🎧 *Title:* ${data.title}
+📺 *Channel:* ${data.channel}
+⏱️ *Duration:* ${data.duration || 'N/A'}
+👀 *Views:* ${searchData?.views?.toLocaleString() || 'N/A'}
+📅 *Uploaded:* ${searchData?.ago || 'N/A'}
+╰──────────────
 
-if (!data?.result?.length) return reply("❌ Song not found")
+📥 *Reply Number To Download*
 
-videoUrl = data.result[0].url
-title = data.result[0].title
-duration = data.result[0].duration
-thumbnail = data.result[0].thumbnail
+1️⃣ Audio File  
+2️⃣ Document File  
+3️⃣ Voice Note
+`;
 
-}
+const sentMsg = await socket.sendMessage(from,{
+image:{url:data.thumbnail},
+caption:caption
+},{quoted:msg});
 
-const dlApi = `https://lakiya-api-site.vercel.app/api/youtube/mp3?url=${encodeURIComponent(videoUrl)}`
+const listener = async (m) => {
 
-await Matrix.sendMessage(from,{
-image:{url: thumbnail},
-caption:`🎵 *SONG FOUND*
+const mek = m.messages[0];
+if (!mek.message) return;
 
-📌 *Title:* ${title}
-⏱ *Duration:* ${duration}
+const replyText =
+mek.message.conversation ||
+mek.message.extendedTextMessage?.text;
 
-⬇️ *Downloading...*`
-},{quoted:m})
+const isReply =
+mek.message.extendedTextMessage?.contextInfo?.stanzaId === sentMsg.key.id;
 
-if (type === "1") {
+if (!isReply) return;
 
-await Matrix.sendMessage(from,{
-audio:{url: dlApi},
+if (!['1','2','3'].includes(replyText)) return;
+
+await socket.sendMessage(from,{react:{text:'⬇️',key:mek.key}});
+
+try {
+
+if(replyText === '1'){
+
+await socket.sendMessage(from,{
+audio:{url:data.download_url},
 mimetype:'audio/mpeg'
-},{quoted:m})
+},{quoted:mek})
 
 }
 
-else if (type === "2") {
+if(replyText === '2'){
 
-await Matrix.sendMessage(from,{
-audio:{url: dlApi},
+await socket.sendMessage(from,{
+document:{url:data.download_url},
+mimetype:'audio/mpeg',
+fileName:data.filename || "song.mp3"
+},{quoted:mek})
+
+}
+
+if(replyText === '3'){
+
+await socket.sendMessage(from,{
+audio:{url:data.download_url},
 mimetype:'audio/mpeg',
 ptt:true
-},{quoted:m})
+},{quoted:mek})
 
 }
 
-else if (type === "3") {
+await socket.sendMessage(from,{react:{text:'✅',key:mek.key}})
 
-await Matrix.sendMessage(from,{
-document:{url: dlApi},
-mimetype:'audio/mpeg',
-fileName:`${title}.mp3`
-},{quoted:m})
+socket.ev.off('messages.upsert', listener)
 
-}
-
-else {
-reply("❌ Use option 1 / 2 / 3")
-}
-
-} catch(e){
+}catch(e){
 console.log(e)
-reply("❌ Download failed")
+reply('❌ Download Failed')
+socket.ev.off('messages.upsert', listener)
 }
+
 }
-break
+
+socket.ev.on('messages.upsert', listener)
+
+}catch(e){
+console.log(e)
+reply('❌ Error occurred')
+}
+
+}
+break;
+
 //====================================================================================//
 
 		
