@@ -994,7 +994,7 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
-		case 'status': {
+		case 'my': {
 
 const axios = require('axios')
 
