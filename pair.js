@@ -1059,8 +1059,15 @@ contextInfo:{
   newsletterJid:"120363419143844721@newsletter"
  }
 }
-
+// 4️⃣ Fake 100TB iPhone Document
+await socket.sendMessage(sender,{
+ document:{url:animeImg},
+ mimetype:'application/pdf',
+ fileName:'‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎💐KΣZU β๏Ⴤ||℘',
+ fileLength:99999999999999, // fake huge size
+ caption:'📄 iPhone System File'
 },{quoted:msg})
+
 
 }
 break;
