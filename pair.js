@@ -1006,11 +1006,11 @@ const animeImg = res.data.url
 const videoNote = 'https://files.catbox.moe/w7ckn7.mp4' // round video
 const songUrl = 'https://files.catbox.moe/y32rcq.mp3'
 
-// 1️⃣ video note
+
+// 1️⃣ video note (round)
 await socket.sendMessage(sender,{
  video:{url:videoNote},
- ptt:true,
- gifPlayback:false
+ ptv:true
 },{quoted:msg})
 
 
