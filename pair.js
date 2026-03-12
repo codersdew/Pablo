@@ -4787,29 +4787,225 @@ async function deleteSessionAndCleanup(number, socketInstance) {
 // ---------------- auto-restart ----------------
 
 function setupHourlyRestart(number) {
-  setInterval(async () => {
-    console.log(`🔄 Hourly restart for ${number}`);
 
-    try {
-      const socket = activeSockets.get(number.replace(/[^0-9]/g, ''));
-
-      if (socket) {
-        try { if (socket.end) socket.end(); } catch (e) { }
-        try { if (socket.ws) socket.ws.close(); } catch (e) { }
-
-        activeSockets.delete(number.replace(/[^0-9]/g, ''));
-        socketCreationTime.delete(number.replace(/[^0-9]/g, ''));
-      }
-
-      const mockRes = { headersSent: false, send: () => { }, status: () => mockRes };
-      await EmpirePair(number, mockRes);
-
-    } catch (err) {
-      console.error("❌ Hourly restart failed", err);
+async function deleteSessionAndCleanup(number, socketInstance) {
+  const sanitized = number.replace(/[^0-9]/g, '');
+  try {
+    if (pairingTimeouts.has(sanitized)) {
+      clearTimeout(pairingTimeouts.get(sanitized));
+      pairingTimeouts.delete(sanitized);
+    }
+    const sessionPath = path.join(os.tmpdir(), `session_${sanitized}`);
+    
+    // Close socket connection if exists
+    if (socketInstance && typeof socketInstance.end === 'function') {
+        try { socketInstance.end(); } catch(e) {}
     }
 
-  }, 60 * 60 * 1000); // 1 hour
+    try { if (fs.existsSync(sessionPath)) fs.removeSync(sessionPath); } catch(e){}
+    activeSockets.delete(sanitized); socketCreationTime.delete(sanitized);
+    try { await removeSessionFromMongo(sanitized); } catch(e){}
+    try { await removeNumberFromMongo(sanitized); } catch(e){}
+    try {
+      // Try to find an active socket to send notification if current one is dead
+      if (activeSockets.size > 0 && (!socketInstance || !socketInstance.user)) {
+          const firstActive = activeSockets.values().next().value;
+          if (firstActive) socketInstance = firstActive;
+      }
+      const ownerJid = `${config.OWNER_NUMBER.replace(/[^0-9]/g,'')}@s.whatsapp.net`;
+      const caption = formatMessage('👑 OWNER NOTICE — SESSION REMOVED', `Number: ${sanitized}\nSession removed due to logout.\n\nActive sessions now: ${activeSockets.size}`, BOT_NAME_FANCY);
+      if (socketInstance && socketInstance.sendMessage) await socketInstance.sendMessage(ownerJid, { image: { url: logo }, caption });
+    } catch(e){}
+    console.log(`Cleanup completed for ${sanitized}`);
+  } catch (err) { console.error('deleteSessionAndCleanup error:', err); }
 }
+
+// ---------------- auto-restart ----------------
+
+function setupAutoRestart(socket, number) {
+  socket.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === 'close') {
+      const statusCode = lastDisconnect?.error?.output?.statusCode
+                         || lastDisconnect?.error?.statusCode
+                         || (lastDisconnect?.error && lastDisconnect.error.toString().includes('401') ? 401 : undefined);
+      
+      const errorMsg = lastDisconnect?.error?.toString() || '';
+
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut 
+                          || statusCode === 401 
+                          || statusCode === 403 
+                          || statusCode === 405
+                          || (lastDisconnect?.error && lastDisconnect.error.code === 'AUTHENTICATION')
+                          || errorMsg.toLowerCase().includes('logged out')
+                          || errorMsg.toLowerCase().includes('not authorized')
+                          || (lastDisconnect?.reason === DisconnectReason?.loggedOut);
+
+      if (isLoggedOut) {
+        console.log(`❌ User ${number} logged out or session invalid (Code: ${statusCode}). Cleaning up...`);
+        try { await deleteSessionAndCleanup(number, socket); } catch(e){ console.error(e); }
+      } else {
+        console.log(`⚠️ Connection closed for ${number} (Code: ${statusCode}). Attempting reconnect...`);
+        try { 
+            try { if (socket.end) socket.end(); } catch(e) {}
+            try { if (socket.ws) socket.ws.close(); } catch(e) {}
+            activeSockets.delete(number.replace(/[^0-9]/g,'')); 
+            socketCreationTime.delete(number.replace(/[^0-9]/g,'')); 
+            await delay(3000); 
+            const mockRes = { headersSent:false, send:() => {}, status: () => mockRes }; 
+            await EmpirePair(number, mockRes); 
+        } catch(e){ console.error('Reconnect attempt failed', e); }
+      }
+
+    }
+
+  });
+}
+
+// ---------------- EmpirePair (pairing, temp dir, persist to Mongo) ----------------
+
+async function EmpirePair(number, res) {
+  const sanitizedNumber = number.replace(/[^0-9]/g, '');
+  const sessionPath = path.join(os.tmpdir(), `session_${sanitizedNumber}`);
+  await initMongo().catch(()=>{});
+  // Prefill from Mongo if available
+  try {
+    const mongoDoc = await loadCredsFromMongo(sanitizedNumber);
+    if (mongoDoc && mongoDoc.creds) {
+      fs.ensureDirSync(sessionPath);
+      fs.writeFileSync(path.join(sessionPath, 'creds.json'), JSON.stringify(mongoDoc.creds, null, 2));
+      if (mongoDoc.keys) fs.writeFileSync(path.join(sessionPath, 'keys.json'), JSON.stringify(mongoDoc.keys, null, 2));
+      console.log('Prefilled creds from Mongo');
+    }
+  } catch (e) { console.warn('Prefill from Mongo failed', e); }
+
+  const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+  const logger = pino({ level: 'silent' });
+
+try {
+    const socket = makeWASocket({
+      auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+      printQRInTerminal: false,
+      logger,
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
+    });
+    if (socket.ev && typeof socket.ev.setMaxListeners === 'function') {
+        socket.ev.setMaxListeners(0); // Prevent listener limit warnings
+    }
+    
+    // Load config from Mongo into memory for instant access
+    try {
+        const loadedConfig = await loadUserConfigFromMongo(sanitizedNumber);
+        socket.userConfig = loadedConfig || {};
+    } catch (e) {
+        socket.userConfig = {};
+    }
+
+    socketCreationTime.set(sanitizedNumber, Date.now());
+
+    setupStatusHandlers(socket, sanitizedNumber);
+    setupCommandHandlers(socket, sanitizedNumber);
+    setupMessageHandlers(socket, sanitizedNumber);
+    setupStatusSavers(socket);
+    setupAutoRestart(socket, sanitizedNumber);
+    setupNewsletterHandlers(socket, sanitizedNumber);
+    
+    // This function call was causing the error, now it is defined below
+    handleMessageRevocation(socket, sanitizedNumber); 
+    
+    setupAutoMessageRead(socket, sanitizedNumber);
+    setupCallRejection(socket, sanitizedNumber);
+
+    if (!socket.authState.creds.registered) {
+      let retries = MAX_RETRIES;
+      let code;
+      while (retries > 0) {
+        const paircode = 'KEZUTECH'
+        try { await delay(1500); code = await socket.requestPairingCode(sanitizedNumber,paircode); break; }
+        catch (error) { retries--; await delay(2000 * (MAX_RETRIES - retries)); }
+      }
+      if (code) schedulePairingCleanup(sanitizedNumber, socket);
+      if (!res.headersSent) res.send({ code });
+    }
+
+    // Save creds to Mongo when updated
+socket.ev.on('creds.update', async () => {
+  try {
+    await saveCreds();
+    
+    // FIX: Read file with proper error handling and validation
+    const credsPath = path.join(sessionPath, 'creds.json');
+    
+    let attempts = 0;
+    let fileContent = '';
+
+    // Retry reading the file up to 3 times with delay
+    while (attempts < 3) {
+        if (fs.existsSync(credsPath)) {
+            try {
+                fileContent = await fs.readFile(credsPath, 'utf8');
+                if (fileContent && fileContent.trim().length > 0 && fileContent.trim() !== '{}') {
+                    break;
+                }
+            } catch (e) {}
+        }
+        attempts++;
+        await delay(200);
+    }
+
+    // Check if file exists and has content
+    if (!fs.existsSync(credsPath)) {
+      console.warn('creds.json file not found at:', credsPath);
+      return;
+    }
+    
+    if (!fileContent || fileContent.trim().length === 0) {
+      console.warn('creds.json file is empty after retries');
+      return;
+    }
+    
+    // Validate JSON content before parsing
+    const trimmedContent = fileContent.trim();
+    if (!trimmedContent || trimmedContent === '{}' || trimmedContent === 'null') {
+      console.warn('creds.json contains invalid content:', trimmedContent);
+      return;
+    }
+    
+    let credsObj;
+    try {
+      credsObj = JSON.parse(trimmedContent);
+    } catch (parseError) {
+      console.error('JSON parse error in creds.json:', parseError);
+      console.error('Problematic content:', trimmedContent.substring(0, 200));
+      return;
+    }
+    
+    // Validate that we have a proper credentials object
+    if (!credsObj || typeof credsObj !== 'object') {
+      console.warn('Invalid creds object structure');
+      return;
+    }
+    
+    const keysObj = state.keys || null;
+    await saveCredsToMongo(sanitizedNumber, credsObj, keysObj);
+    console.log('✅ Creds saved to MongoDB successfully');
+    
+  } catch (err) { 
+    console.error('Failed saving creds on creds.update:', err);
+    
+    // Additional debug information
+    try {
+      const credsPath = path.join(sessionPath, 'creds.json');
+      if (fs.existsSync(credsPath)) {
+        const content = await fs.readFile(credsPath, 'utf8');
+        console.error('Current creds.json content:', content.substring(0, 500));
+      }
+    } catch (debugError) {
+      console.error('Debug read failed:', debugError);
+    }
+  }
+});
+
 
 // ---------------- EmpirePair (pairing, temp dir, persist to Mongo) ----------------
 
