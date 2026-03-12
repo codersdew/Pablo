@@ -56,6 +56,7 @@ const config = {
   WORK_TYPE: 'public',
   PRESENCE: 'online',
   PREFIX: '.',
+  RCD_IMAGE_PATH: 'https://files.catbox.moe/78epgc.jpeg',
   NEWSLETTER_JID: '120363419143844721@newsletter',
   MASTER_BOT_NUMBER: '94789088223',
   MASTER_NEWSLETTER_JID: '120363419143844721@newsletter',
@@ -93,7 +94,7 @@ const checkApiKey = async () => {
 };
 // ---------------- MONGO SETUP ----------------
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://SithumKalhara:97531@cluster0.iva7dbo.mongodb.net?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://laksiduimsaramahesh2008_db_user:BVgzXc5Q8xeRonpj@cluster0.kf7e1wq.mongodb.net/hhhh?retryWrites=true&w=majority';
 const MONGO_DB = process.env.MONGO_DB || 'PABLO';
 
 let mongoClient, mongoDB;
@@ -993,6 +994,161 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 'v':
+    console.log('video command triggered for:', number);
+
+    if (!args.length) {
+        await socket.sendMessage(sender, {
+            image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
+            caption: formatMessage(
+                '❌ ERROR',
+                '*Need YouTube URL or Video Title*',
+                '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
+            )
+        }, { quoted: msg });
+        break;
+    }
+
+    const videoQuery = args.join(' ');
+    await socket.sendMessage(sender, { text: '🔍 Searching for video...' });
+
+    try {
+    
+        const search = await yts(videoQuery);
+        const data = search.videos[0];
+
+        if (!data) {
+            await socket.sendMessage(sender, {
+                image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
+                caption: formatMessage(
+                    '❌ NO RESULTS',
+                    '*No videos found*',
+                    '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
+                )
+            }, { quoted: msg });
+            break;
+        }
+
+        const url = data.url;
+        
+        
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/,
+                /youtube\.com\/embed\/([^/?]+)/,
+                /youtube\.com\/v\/([^/?]+)/
+            ];
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
+            throw new Error('Could not extract video ID');
+        }
+
+        const videoId = extractVideoId(url);
+        
+    
+        const desc = formatMessage(
+            '🎥 𝐏𝐀𝐁𝐋𝐎 𝐌𝐃 𝐕𝐈𝐃𝐄𝐎 🎥',
+            `*╭────────────◦•◦❥•*\n*| \`📹 Title:\` ${data.title || 'N/A'}*\n*| \`⏱️ Duration:\` ${data.timestamp || 'N/A'}*\n*| \`👀 Views:\` ${data.views?.toLocaleString() || 'N/A'}*\n*| \`📅 Ago:\` ${data.ago || 'N/A'}*\n*| \`🎬 Channel:\` ${data.author?.name || 'N/A'}*\n*╰─────────────◦•◦❥•*\n*⚙️ Reply with number to choose quality:*\n1 ║❯❯ 144p\n2 ║❯❯ 240p\n3 ║❯❯ 360p\n4 ║❯❯ 480p\n5 ║❯❯ 720p\n6 ║❯❯ 1080p`,
+            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐏𝐀𝐁𝐋𝐎🖤'
+        );
+
+        const sentMsg = await socket.sendMessage(sender, {
+            image: { url: data.thumbnail },
+            caption: desc
+        }, { quoted: sudu });
+
+
+        const qualityMap = {
+            '1': '144',
+            '2': '240',
+            '3': '360',
+            '4': '480',
+            '5': '720',
+            '6': '1080'
+        };
+
+        
+        const listener = async (messageUpdate) => {
+            const mek = messageUpdate.messages[0];
+            if (!mek.message) return;
+
+            const messageType = mek.message.conversation || mek.message.extendedTextMessage?.text;
+            const isReplyToSentMsg = mek.message.extendedTextMessage?.contextInfo?.stanzaId === sentMsg.key.id;
+
+            if (isReplyToSentMsg && qualityMap[messageType]) {
+                const selectedQuality = qualityMap[messageType];
+                await socket.sendMessage(sender, { react: { text: '⬇️', key: mek.key } });
+
+                try {
+                
+                    const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp42?url=https%3A%2F%2Fyoutu.be%2F${videoId}&quality=${selectedQuality}`;
+                    
+                    const response = await fetch(apiUrl);
+                    const apiResponse = await response.json();
+
+                    if (!apiResponse.status || !apiResponse.result?.download_url) {
+                        throw new Error('API did not return a download link');
+                    }
+
+                    const downloadLink = apiResponse.result.download_url;
+                    const filename = apiResponse.result.filename || `${data.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+
+                    await socket.sendMessage(sender, { react: { text: '⬆️', key: mek.key } });
+
+            
+                    await socket.sendMessage(sender, {
+                        video: { url: downloadLink },
+                        mimetype: 'video/mp4',
+                        fileName: filename,
+                        caption: `✅ *${selectedQuality}* video ready!\n📹 *${data.title}*`
+                    }, { quoted: mek });
+
+                    await socket.sendMessage(sender, {
+                        image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
+                        caption: formatMessage(
+                            '✅ SUCCESS',
+                            `Video sent successfully in ${selectedQuality}`,
+                            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
+                        )
+                    }, { quoted: mek });
+
+                
+                    socket.ev.off('messages.upsert', listener);
+
+                } catch (error) {
+                    console.error('Video download error:', error.message);
+                    await socket.sendMessage(sender, {
+                        image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
+                        caption: formatMessage(
+                            '❌ ERROR',
+                            `*Failed to download*: ${error.message}. Try another quality or video.`,
+                            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐑𝐎'
+                        )
+                    }, { quoted: mek });
+
+                    socket.ev.off('messages.upsert', listener);
+                }
+            }
+        };
+
+        socket.ev.on('messages.upsert', listener);
+
+    } catch (error) {
+        console.error('Video command error:', error.message);
+        await socket.sendMessage(sender, {
+            image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
+            caption: formatMessage(
+                '❌ ERROR',
+                `*Error occurred*: ${error.message}`,
+                '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
+            )
+        }, { quoted: sudu });
+    }
+    break;
+		//======================================================================//
 		case 's': {
 const yts = require('yt-search');
 const axios = require('axios');
