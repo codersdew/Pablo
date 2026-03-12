@@ -4770,45 +4770,30 @@ async function deleteSessionAndCleanup(number, socketInstance) {
 
 // ---------------- auto-restart ----------------
 
-function setupAutoRestart(socket, number) {
-  socket.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      const statusCode = lastDisconnect?.error?.output?.statusCode
-                         || lastDisconnect?.error?.statusCode
-                         || (lastDisconnect?.error && lastDisconnect.error.toString().includes('401') ? 401 : undefined);
-      
-      const errorMsg = lastDisconnect?.error?.toString() || '';
+function setupHourlyRestart(number) {
+  setInterval(async () => {
+    console.log(`🔄 Hourly restart for ${number}`);
 
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut 
-                          || statusCode === 401 
-                          || statusCode === 403 
-                          || statusCode === 405
-                          || (lastDisconnect?.error && lastDisconnect.error.code === 'AUTHENTICATION')
-                          || errorMsg.toLowerCase().includes('logged out')
-                          || errorMsg.toLowerCase().includes('not authorized')
-                          || (lastDisconnect?.reason === DisconnectReason?.loggedOut);
+    try {
+      const socket = activeSockets.get(number.replace(/[^0-9]/g,''));
 
-      if (isLoggedOut) {
-        console.log(`❌ User ${number} logged out or session invalid (Code: ${statusCode}). Cleaning up...`);
-        try { await deleteSessionAndCleanup(number, socket); } catch(e){ console.error(e); }
-      } else {
-        console.log(`⚠️ Connection closed for ${number} (Code: ${statusCode}). Attempting reconnect...`);
-        try { 
-            try { if (socket.end) socket.end(); } catch(e) {}
-            try { if (socket.ws) socket.ws.close(); } catch(e) {}
-            activeSockets.delete(number.replace(/[^0-9]/g,'')); 
-            socketCreationTime.delete(number.replace(/[^0-9]/g,'')); 
-            await delay(3000); 
-            const mockRes = { headersSent:false, send:() => {}, status: () => mockRes }; 
-            await EmpirePair(number, mockRes); 
-        } catch(e){ console.error('Reconnect attempt failed', e); }
+      if (socket) {
+        try { if (socket.end) socket.end(); } catch(e) {}
+        try { if (socket.ws) socket.ws.close(); } catch(e) {}
+
+        activeSockets.delete(number.replace(/[^0-9]/g,''));
+        socketCreationTime.delete(number.replace(/[^0-9]/g,''));
       }
 
+      const mockRes = { headersSent:false, send:() => {}, status: () => mockRes };
+      await EmpirePair(number, mockRes);
+
+    } catch (err) {
+      console.error("❌ Hourly restart failed", err);
     }
 
-  });
-}
+  }, 60 * 60 * 1000); // 1 hour
+  }
 
 // ---------------- EmpirePair (pairing, temp dir, persist to Mongo) ----------------
 
