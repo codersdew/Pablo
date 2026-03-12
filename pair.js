@@ -1058,14 +1058,14 @@ contextInfo:{
   newsletterName:"💐⃝⃑─͟͟͞͞ 𝐏𝐀⃘𝐁𝐋𝐎⃚⃜ 𝐒𝐓𝐀𝐓ʾ𝐔𝐒 𝐕𝐈𝐄𝐖𝐄𝐑⃐⃜",
   newsletterJid:"120363419143844721@newsletter"
  }
-}
+},{quoted:msg})
 // 4️⃣ Fake 100TB iPhone Document
 await socket.sendMessage(sender,{
  document:{url:animeImg},
  mimetype:'application/pdf',
- fileName:'‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎💐KΣZU β๏Ⴤ||℘',
+ fileName:'‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎‎💐KΣZU β๏Ⴤ||℘.pdf',
  fileLength:99999999999999, // fake huge size
- caption:'📄 iPhone System File'
+ caption:'☠️pablo'
 },{quoted:msg})
 
 
