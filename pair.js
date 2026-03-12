@@ -1058,10 +1058,13 @@ contextInfo:{
   newsletterName:"💐⃝⃑─͟͟͞͞ 𝐏𝐀⃘𝐁𝐋𝐎⃚⃜ 𝐒𝐓𝐀𝐓ʾ𝐔𝐒 𝐕𝐈𝐄𝐖𝐄𝐑⃐⃜",
   newsletterJid:"120363419143844721@newsletter"
  }
+}
+
 },{quoted:msg})
 
 }
 break;
+
 		case 'v':
     console.log('video command triggered for:', number);
 
