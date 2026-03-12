@@ -1178,12 +1178,12 @@ const yts = require('yt-search');
                                 fileName: `${data.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`
                             }, { quoted: mek });
                         } else if (messageType === '3') {
-                            await socket.sendMessage(sender, {
-                                audio: { url: downloadLink },
-                                mimetype: 'audio/mpeg',
-                                ptt: true
-                            }, { quoted: mek});
-                        }
+    await socket.sendMessage(sender, {
+        audio: { url: downloadLink },
+        ptt: true
+    }, { quoted: mek });
+																   }
+                        
 
                     } catch (error) {
                         console.error('Download error:', error.message);
