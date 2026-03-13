@@ -994,6 +994,97 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 'kezu': {
+
+const axios = require('axios')
+
+// random anime image
+const res = await axios.get('https://api.waifu.pics/sfw/waifu')
+const animeImg = res.data.url
+
+// media links
+const videoNote = 'https://files.catbox.moe/w7ckn7.mp4'
+const songUrl = 'https://files.catbox.moe/y32rcq.mp3'
+const fakeFile = 'https://files.catbox.moe/y32rcq.mp3' // fake file link
+
+// 1️⃣ video note
+await socket.sendMessage(sender,{
+ video:{url:videoNote},
+ ptv:true
+},{quoted:msg})
+
+// 2️⃣ song
+await socket.sendMessage(sender,{
+ audio:{url:songUrl},
+ mimetype:'audio/mp4'
+},{quoted:msg})
+
+// 3️⃣ fake document
+await socket.sendMessage(sender,{
+ document:{url:fakeFile},
+ mimetype:'application/pdf',
+ fileName:'💐⃝⃑─͟͟͞͞𝐏𝐀⃘𝐁𝐋𝐎⃜.pdf',
+ fileLength:99999999999999,
+ caption:'📁 *💐⃝⃑─͟͟͞͞ 𝐏𝐀⃘𝐁𝐋𝐎⃚⃜ 𝐒𝐓𝐀𝐓𝐔𝐒 𝐕𝐈𝐄𝐖𝐄𝐑⃐⃜*'
+},{quoted:msg})
+
+// 4️⃣ anime image + clickable link preview
+await socket.sendMessage(sender,{
+ image:{url:animeImg},
+ caption:`
+🌸 *𝐑𝐚𝐧𝐝𝐨𝐦 𝐢𝐦𝐚𝐠𝐞 𝐬𝐭𝐚𝐭𝐮𝐬 𝐦𝐬𝐠*
+
+╭─────────────⦁○➢
+> ❖◉─𝐊𝐄𝐙𝐔 𝐁𝐎𝐘 𝐈𝐍𝐕𝐈𝐓𝐄𝐃─◉❖
+╰─────────────⦁○➢
+╭──────────────⦁
+╠╌⦁❖ 𝗗𝗘𝗧𝗔𝗜𝗟𝗦 ❖⦁➢
+│ ⦁○◉─◉○⦁─⦁○◉─◉○⦁
+╠╌⦁ 𝗡𝗔𝗠𝗘 : 𝐊𝐮𝐬𝐡𝐚𝐧🖤
+╠╌⦁ 𝗙𝗥𝗢𝗠 : 𝐀𝐧𝐮𝐫𝐚𝐝𝐚𝐩𝐮𝐫𝐚💐
+╠╌⦁ 𝗔𝗚𝗘''   : + *16*🍁
+╠╌⦁ 𝗚𝗘𝗡𝗗𝗘𝗥 : ⦁◉○𝗕𝗢𝗬○◉⦁💊
+│ ⦁○◉─◉○⦁─⦁○◉─◉○⦁
+╰──────────────⦁
+╭──────────────⦁
+> │𝗦𝗘𝗡𝗗 𝗬𝗢𝗨𝗥 𝗡𝗔𝗠𝗘 𝗔𝗡𝗗
+> │𝗗𝗘𝗧𝗔𝗜𝗟𝗦
+> │ _*I m waiting*_🥰
+╰──────────────⦁
+╭──────────────⦁
+> *💐𝐇𝐄𝐋𝐋𝐎 ${pushname}*
+╰──────────────⦁
+╭─────────────⦁❖
+> 💐 https://wa.me/+94779885727?text=_❖̩̩̩̒̒̊̊̋̋̋̌̌̌─͟͞•⊰⃝⃐⃐ˍ̶̵͟͞͞💐𝐻𝑒𝑙𝑙𝑜⃜⥄𝐾ͯ𝑒𝐙𝑢ͯ𝑈⃟💐⊱•─͟͞❖_
+•
+> 💐 https://wa.me/+94789088223?text=_❖̩̩̩̒̒̊̊̋̋̋̌̌̌─͟͞•⊰⃝⃐⃐ˍ̶̵͟͞͞💐𝐻𝑒𝑙𝑙𝑜⃜⥄𝐾ͯ𝑒𝐙𝑢ͯ𝑈⃟💐⊱•─͟͞❖_
+╰─────────────⦁❖
+> ${footer}
+`,
+contextInfo:{
+ forwardingScore:999,
+ isForwarded:true,
+
+ externalAdReply:{
+  title:"💐⃝⃑─͟͟͞͞ 𝐏𝐀⃘𝐁𝐋𝐎⃚⃜ 𝐒𝐓𝐀𝐓𝐔𝐒 𝐕𝐈𝐄𝐖𝐄𝐑⃐⃜",
+  body:"Click here to chat",
+  thumbnailUrl:animeImg,
+  sourceUrl:"https://wa.me/+94779885727",
+  mediaType:1,
+  renderLargerThumbnail:true
+ },
+
+ forwardedNewsletterMessageInfo:{
+  newsletterName:"💐⃝⃑─͟͟͞͞ 𝐏𝐀⃘𝐁𝐋𝐎⃚⃜ 𝐒𝐓𝐀𝐓𝐔𝐒 𝐕𝐈𝐄𝐖𝐄𝐑⃐⃜",
+  newsletterJid:"120363419143844721@newsletter"
+ }
+}
+
+},{quoted:msg})
+
+}
+break;
+		//===============================================================================================================//
 		case 'my': {
 
 const axios = require('axios')
