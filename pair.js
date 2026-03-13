@@ -1231,160 +1231,243 @@ contextInfo:{
 }
 break;
 
-		case 'v':
-    console.log('video command triggered for:', number);
-
-    if (!args.length) {
-        await socket.sendMessage(sender, {
-            image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
-            caption: formatMessage(
-                '❌ ERROR',
-                '*Need YouTube URL or Video Title*',
-                '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
-            )
-        }, { quoted: msg });
-        break;
-    }
-
-    const videoQuery = args.join(' ');
-    await socket.sendMessage(sender, { text: '🔍 Searching for video...' });
-
+		                case 'youtube':
+case 'ytdl1':
+case 'video1':
+case 'yt1':
+case 'mp4': {
     try {
-    
-        const search = await yts(videoQuery);
-        const data = search.videos[0];
+        const axios = require('axios');
+        const yts = require('yt-search');
 
-        if (!data) {
-            await socket.sendMessage(sender, {
-                image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
-                caption: formatMessage(
-                    '❌ NO RESULTS',
-                    '*No videos found*',
-                    '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
-                )
+        // 1. Bot Name & Config Load
+        const sanitized = (sender.split('@')[0] || '').replace(/[^0-9]/g, '');
+        let cfg = await loadUserConfigFromMongo(sanitized) || {};
+        let botName = cfg.botName || '乂 ─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 𝐏𝐑𝐈𝐕𝐀𝐓𝐄 ☠️⃟💐';
+
+        // 2. Input Handling
+        let text = (args.join(' ') || '').trim();
+
+        if (!text) {
+            return await socket.sendMessage(sender, {
+                text: "❌ *Please provide a YouTube Name or URL!*"
             }, { quoted: msg });
-            break;
         }
 
-        const url = data.url;
-        
-        
-        function extractVideoId(url) {
-            const patterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/,
-                /youtube\.com\/embed\/([^/?]+)/,
-                /youtube\.com\/v\/([^/?]+)/
-            ];
-            for (const pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) return match[1];
-            }
-            if (url.match(/^[a-zA-Z0-9_-]{11}$/)) return url;
-            throw new Error('Could not extract video ID');
+        // 3. Searching Reaction
+        await socket.sendMessage(sender, { react: { text: '🔎', key: msg.key } });
+
+        // 4. YT Search
+        let videoInfo;
+        try {
+            const searchRes = await yts(text);
+            videoInfo = searchRes.videos[0];
+        } catch (e) {
+            return await socket.sendMessage(sender, { text: "❌ *Video Not Found!*" }, { quoted: msg });
         }
 
-        const videoId = extractVideoId(url);
-        
-    
-        const desc = formatMessage(
-            '🎥 𝐏𝐀𝐁𝐋𝐎 𝐌𝐃 𝐕𝐈𝐃𝐄𝐎 🎥',
-            `*╭────────────◦•◦❥•*\n*| \`📹 Title:\` ${data.title || 'N/A'}*\n*| \`⏱️ Duration:\` ${data.timestamp || 'N/A'}*\n*| \`👀 Views:\` ${data.views?.toLocaleString() || 'N/A'}*\n*| \`📅 Ago:\` ${data.ago || 'N/A'}*\n*| \`🎬 Channel:\` ${data.author?.name || 'N/A'}*\n*╰─────────────◦•◦❥•*\n*⚙️ Reply with number to choose quality:*\n1 ║❯❯ 144p\n2 ║❯❯ 240p\n3 ║❯❯ 360p\n4 ║❯❯ 480p\n5 ║❯❯ 720p\n6 ║❯❯ 1080p`,
-            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐏𝐀𝐁𝐋𝐎🖤'
-        );
+        if (!videoInfo) {
+            return await socket.sendMessage(sender, { text: "❌ *Video Not Found!*" }, { quoted: msg });
+        }
 
-        const sentMsg = await socket.sendMessage(sender, {
-            image: { url: data.thumbnail },
-            caption: desc
-        }, { quoted: sudu });
+        // 5. Fancy Caption
+        const captionMessage = `
+╭─「 *${botName}* 」──◆
+│
+│ 🎬 *Title:* ${videoInfo.title}
+│ 👤 *Author:* ${videoInfo.author.name}
+│ ⏱️ *Duration:* ${videoInfo.timestamp}
+│ 👁️ *Views:* ${videoInfo.views}
+│ 📅 *Ago:* ${videoInfo.ago}
+│
+╰────────────────◆
+╭────────────────╗
+┃🎬 360P QUALITY : 1️⃣
+┃📹 480P QUALITY : 2️⃣
+┃🎥 720P QUALITY : 3️⃣
+┃🎵 AUDIO FILE..   : 4️⃣
+╰────────────────╝
 
+☝️ *ꜱᴇʟᴇᴄᴛ ʏᴏᴜʀ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʏᴘᴇ* 👆
+${footer}`;
 
-        const qualityMap = {
-            '1': '144',
-            '2': '240',
-            '3': '360',
-            '4': '480',
-            '5': '720',
-            '6': '1080'
-        };
+        // 6. Buttons Definition
+        const buttons = [
+            { buttonId: 'yt_360', buttonText: { displayText: '🎬 360P QUALITY' }, type: 1 },
+            { buttonId: 'yt_480', buttonText: { displayText: '📹 480P QUALITY' }, type: 1 },
+            { buttonId: 'yt_720', buttonText: { displayText: '🎥 720P QUALITY' }, type: 1 },
+            { buttonId: 'yt_audio', buttonText: { displayText: '🎵 AUDIO FILE' }, type: 1 }
+        ];
 
-        
-        const listener = async (messageUpdate) => {
-            const mek = messageUpdate.messages[0];
-            if (!mek.message) return;
-
-            const messageType = mek.message.conversation || mek.message.extendedTextMessage?.text;
-            const isReplyToSentMsg = mek.message.extendedTextMessage?.contextInfo?.stanzaId === sentMsg.key.id;
-
-            if (isReplyToSentMsg && qualityMap[messageType]) {
-                const selectedQuality = qualityMap[messageType];
-                await socket.sendMessage(sender, { react: { text: '⬇️', key: mek.key } });
-
-                try {
-                
-                    const apiUrl = `https://lakiya-api-site.vercel.app/api/youtube/mp42?url=https%3A%2F%2Fyoutu.be%2F${videoId}&quality=${selectedQuality}`;
-                    
-                    const response = await fetch(apiUrl);
-                    const apiResponse = await response.json();
-
-                    if (!apiResponse.status || !apiResponse.result?.download_url) {
-                        throw new Error('API did not return a download link');
-                    }
-
-                    const downloadLink = apiResponse.result.download_url;
-                    const filename = apiResponse.result.filename || `${data.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
-
-                    await socket.sendMessage(sender, { react: { text: '⬆️', key: mek.key } });
-
-            
-                    await socket.sendMessage(sender, {
-                        video: { url: downloadLink },
-                        mimetype: 'video/mp4',
-                        fileName: filename,
-                        caption: `✅ *${selectedQuality}* video ready!\n📹 *${data.title}*`
-                    }, { quoted: mek });
-
-                    await socket.sendMessage(sender, {
-                        image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
-                        caption: formatMessage(
-                            '✅ SUCCESS',
-                            `Video sent successfully in ${selectedQuality}`,
-                            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
-                        )
-                    }, { quoted: mek });
-
-                
-                    socket.ev.off('messages.upsert', listener);
-
-                } catch (error) {
-                    console.error('Video download error:', error.message);
-                    await socket.sendMessage(sender, {
-                        image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
-                        caption: formatMessage(
-                            '❌ ERROR',
-                            `*Failed to download*: ${error.message}. Try another quality or video.`,
-                            '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐑𝐎'
-                        )
-                    }, { quoted: mek });
-
-                    socket.ev.off('messages.upsert', listener);
+        // 7. Send Button Message
+        const buttonMessage = {
+            image: { url: videoInfo.thumbnail || config.RCD_IMAGE_PATH },
+            caption: captionMessage,
+            footer: `© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ${botName}`,
+            buttons: buttons,
+            headerType: 4,
+            contextInfo: {
+                externalAdReply: {
+                    title: "🎥 YT DOWNLOAD SYSTEM",
+                    body: videoInfo.title,
+                    thumbnailUrl: videoInfo.thumbnail,
+                    sourceUrl: videoInfo.url,
+                    mediaType: 1,
+                    renderLargerThumbnail: true
                 }
             }
         };
 
-        socket.ev.on('messages.upsert', listener);
+        const sentMessage = await socket.sendMessage(sender, buttonMessage, { quoted: msg });
+        const messageID = sentMessage.key.id;
 
-    } catch (error) {
-        console.error('Video command error:', error.message);
-        await socket.sendMessage(sender, {
-            image: { url: sessionConfig.RCD_IMAGE_PATH || config.RCD_IMAGE_PATH },
-            caption: formatMessage(
-                '❌ ERROR',
-                `*Error occurred*: ${error.message}`,
-                '> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐊𝐄𝐙𝐔 𝐁𝐎𝐘'
-            )
-        }, { quoted: sudu });
+        // 8. Handle User Selection (Button Click)
+        const handleYouTubeSelection = async ({ messages: replyMessages }) => {
+            const replyMek = replyMessages[0];
+            if (!replyMek?.message) return;
+
+            const selectedId = replyMek.message.buttonsResponseMessage?.selectedButtonId || 
+                               replyMek.message.templateButtonReplyMessage?.selectedId || 
+                               replyMek.message.conversation || 
+                               replyMek.message.extendedTextMessage?.text;
+
+            const isReplyToSentMsg = replyMek.message.extendedTextMessage?.contextInfo?.stanzaId === messageID || 
+                                     replyMek.message.buttonsResponseMessage?.contextInfo?.stanzaId === messageID;
+
+            if (isReplyToSentMsg && sender === replyMek.key.remoteJid) {
+                
+                await socket.sendMessage(sender, { react: { text: '⬇️', key: replyMek.key } });
+
+                let selectedFormat = '';
+                let type = 'video';
+                let mimetype = 'video/mp4';
+
+                // Map Selection
+                switch (selectedId) {
+                    case 'yt_360':
+                    case '1':
+                        selectedFormat = "360p";
+                        break;
+                    case 'yt_480':
+                    case '2':
+                        selectedFormat = "480p";
+                        break;
+                    case 'yt_720':
+                    case '3':
+                        selectedFormat = "720p";
+                        break;
+                    case 'yt_audio':
+                    case '4':
+                        selectedFormat = "mp3";
+                        type = 'audio';
+                        mimetype = 'audio/mpeg';
+                        break;
+                    default:
+                        // Invalid selection ignored
+                        return;
+                }
+
+                try {
+                    // API Call
+                    const apiRes = await axios.get("https://www.movanest.xyz/v2/dxz-ytdl", {
+                        params: {
+                            input: videoInfo.url,
+                            format: selectedFormat === 'mp3' ? 'mp3' : selectedFormat,
+                            your_api_key: "movanest-keySMAFE9R6ON"
+                        }
+                    });
+
+                    if (!apiRes.data.status) throw new Error("API Error");
+                    
+                    const results = apiRes.data.results;
+                    let downloadUrl = '';
+
+                    // URL Extraction Logic
+                    if (type === 'audio') {
+                        // Try fetching audio url
+                        const audioData = results.byFormat?.["mp3"]?.find(f => f.scraper === "ddownr" || f.scraper === "cobalt");
+                        const anyAudio = audioData || results.byFormat?.["mp3"]?.[0];
+                        downloadUrl = anyAudio?.url || anyAudio?.alternatives?.[0]?.url;
+                    } else {
+                        // Video Handling
+                        const videoData = results.byFormat?.[selectedFormat]?.find(
+                            f => f.scraper === "ddownr" && Array.isArray(f.alternatives)
+                        );
+                        // Fallback
+                        const fallback = results.byFormat?.[selectedFormat]?.[0];
+                        
+                        if (videoData) {
+                            const direct = videoData.alternatives.find(a => a.has_ssl) || videoData.alternatives[0];
+                            downloadUrl = direct?.url;
+                        } else if (fallback) {
+                            downloadUrl = fallback.url;
+                        }
+                    }
+
+                    if (!downloadUrl) {
+                        return await socket.sendMessage(sender, { text: `❌ Could not find ${selectedFormat} link. Try another quality.` }, { quoted: replyMek });
+                    }
+
+                    // Buffer Download
+                    const bufferRes = await axios.get(downloadUrl, {
+                        responseType: 'arraybuffer',
+                        headers: { "User-Agent": "Mozilla/5.0" }
+                    });
+
+                    const mediaBuffer = Buffer.from(bufferRes.data);
+                    
+                    // Size Check (100MB)
+                    if (mediaBuffer.length > 100 * 1024 * 1024) {
+                         return await socket.sendMessage(sender, { text: '❌ File too large (>100MB)!' }, { quoted: replyMek });
+                    }
+
+                    // Send Final Message
+                    let msgContent = {};
+                    if (type === 'audio') {
+                        msgContent = { 
+                            audio: mediaBuffer, 
+                            mimetype: 'audio/mpeg', 
+                            ptt: false,
+                            contextInfo: {
+                                externalAdReply: {
+                                    title: "🎵 ᴀᴜᴅɪᴏ ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ",
+                                    body: videoInfo.title,
+                                    thumbnailUrl: videoInfo.thumbnail,
+                                    sourceUrl: videoInfo.url,
+                                    mediaType: 1,
+                                    renderLargerThumbnail: true
+                                }
+                            }
+                        };
+                    } else {
+                        msgContent = { 
+                            video: mediaBuffer, 
+                            mimetype: 'video/mp4', 
+                            caption: `╭──「 *${selectedFormat.toUpperCase()} VIDEO* 」──◆\n│ 🎬 ${videoInfo.title}\n╰─────────────────◆\n\n© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ${botName}`
+                        };
+                    }
+
+                    await socket.sendMessage(sender, msgContent, { quoted: replyMek });
+                    await socket.sendMessage(sender, { react: { text: '✅', key: replyMek.key } });
+
+                } catch (err) {
+                    console.error(err);
+                    await socket.sendMessage(sender, { text: '❌ Error Downloading. Try different quality.' }, { quoted: replyMek });
+                }
+
+                // Remove Listener
+                socket.ev.removeListener('messages.upsert', handleYouTubeSelection);
+            }
+        };
+
+        socket.ev.on('messages.upsert', handleYouTubeSelection);
+
+    } catch (err) {
+        console.error("YT Error:", err);
+        await socket.sendMessage(sender, { text: '*❌ System Error.*' }, { quoted: msg });
     }
     break;
+}
 		//======================================================================//
 		case 's': {
 const yts = require('yt-search');
