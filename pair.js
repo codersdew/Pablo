@@ -994,6 +994,26 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
+		case 'ai': {
+if (!text) return reply('🤖 Question ekak denna!')
+
+const axios = require('axios')
+
+try {
+
+let res = await axios.get(`https://hiru-api-ai.vercel.app/api/gemini?apikey=hiru&q=${encodeURIComponent(text)}`)
+
+let ai = res.data.response || res.data.answer || JSON.stringify(res.data)
+
+await sock.sendMessage(from,{ text: `🤖 AI:\n\n${ai}` },{ quoted: mek })
+
+} catch (e) {
+reply('❌ AI error!')
+}
+
+}
+break
+		//===============================================================================================================//
 		case '.': {
 
 const axios = require('axios')
