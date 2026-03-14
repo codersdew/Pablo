@@ -994,21 +994,34 @@ switch (command) {
  
  
  //===================================CMD LINES========================================//
-		case 'ai': {
-if (!text) return reply('🤖 Question ekak denna!')
+		case 'ai':
+case 'gpt':
+case 'chat': {
+try {
+
+if (!args[0]) {
+return reply('❌ Message ekak denna!\nExample: .ai Hello')
+}
 
 const axios = require('axios')
 
-try {
+const query = args.join(" ")
 
-let res = await axios.get(`https://hiru-api-ai.vercel.app/api/gemini?apikey=hiru&q=${encodeURIComponent(text)}`)
+await sock.sendMessage(from,{
+react:{text:"🤖",key:mek.key}
+})
 
-let ai = res.data.response || res.data.answer || JSON.stringify(res.data)
+const res = await axios.get(`https://hiru-api-ai.vercel.app/api/gemini?apikey=hiru&q=${encodeURIComponent(query)}`)
 
-await sock.sendMessage(from,{ text: `🤖 AI:\n\n${ai}` },{ quoted: mek })
+let ai = res.data.data || res.data.answer || res.data.response
 
-} catch (e) {
-reply('❌ AI error!')
+await sock.sendMessage(from,{
+text:`🤖 *AI Response*\n\n${ai}`
+},{quoted:mek})
+
+} catch(e){
+console.log(e)
+reply('❌ AI API error!')
 }
 
 }
@@ -4347,39 +4360,7 @@ case 'yt_select': {
 }
 
 // Ai Commands 
-case 'ai':
-case 'gpt':
-case 'chat': {
-    try {
-        if (!args[0]) {
-            return await socket.sendMessage(sender, {
-                text: '*❌ Please provide a message*\n*Usage:* .ai Hello, how are you?'
-            }, { quoted: myquoted });
-        }
 
-        const query = args.join(' ');
-        
-        await socket.sendMessage(sender, { react: { text: '🤖', key: msg.key } });
-
-        const response = await axios.get(`https://apis.davidcyriltech.my.id/ai/chatbot?query=${encodeURIComponent(query)}`);
-        
-        if (response.data.status !== 200 || !response.data.success) {
-            throw new Error('AI service unavailable');
-        }
-
-        await socket.sendMessage(sender, {
-            text: `*🤖 AI Response:*\n\n${response.data.result}\n\n${footer}`,
-            contextInfo
-        }, { quoted: myquoted });
-
-    } catch (error) {
-        console.error('❌ AI error:', error);
-        await socket.sendMessage(sender, {
-            text: `*❌ AI Error*\n\nFailed to get response. Please try again.`
-        }, { quoted: myquoted });
-    }
-    break;
-}
 
 //====================== Movie Commands======================================
 
