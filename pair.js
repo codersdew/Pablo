@@ -881,38 +881,6 @@ function setupCommandHandlers(socket, number) {
 
 // ================= AUTO VOICE =================
 
-if (config.AUTO_VOICE === 'true') {
-
-const from = msg.key.remoteJid
-const text = body.toLowerCase()
-
-if (text === 'hi') {
-await socket.sendMessage(from,{
-audio:{url:'./voice/gn.mp3'},
-mimetype:'audio/mp4'
-ptt:true
-},{quoted:msg})
-}
-
-if (text === 'bye') {
-await socket.sendMessage(from,{
-audio:{url:'./voice/gn.mp3'},
-mimetype:'audio/mp4',
-ptt:true
-},{quoted:msg})
-}
-
-if (text === 'gn') {
-await socket.sendMessage(from,{
-audio:{url:'./voice/gn.mp3'},
-mimetype:'audio/mp4',
-ptt:true
-},{quoted:msg})
-}
-
-}
-
-// ==============================================
 
 const prefix = config.PREFIX;
 const isCmd = body && body.startsWith && body.startsWith(prefix);
