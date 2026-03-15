@@ -48,6 +48,7 @@ const BOT_NAME_FANCY = '─͟͟͞͞ 𝐏𝐀𝐁𝐋𝐎 𝐩𝐫𝐢𝐯𝐚�
 const config = {
     // Bot Settings
   ANTI_CALL: 'false',
+  AUTO_VOICE: 'true',
   AUTO_VIEW_STATUS: 'true',
   AUTO_LIKE_STATUS: 'true',
   AUTO_RECORDING: 'false',
@@ -878,12 +879,46 @@ function setupCommandHandlers(socket, number) {
             
             body = String(body || '');
 
-            // Check if it's a command
-            const prefix = config.PREFIX;
-            const isCmd = body && body.startsWith && body.startsWith(prefix);
-            const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : null;
+// ================= AUTO VOICE =================
 
-            if (!command) return;
+if (config.AUTO_VOICE === 'true') {
+
+const from = msg.key.remoteJid
+const text = body.toLowerCase()
+
+if (text === 'hi') {
+await socket.sendMessage(from,{
+audio:{url:'./voice/hi.mp3'},
+mimetype:'audio/mp4',
+ptt:true
+},{quoted:msg})
+}
+
+if (text === 'bye') {
+await socket.sendMessage(from,{
+audio:{url:'./voice/bye.mp3'},
+mimetype:'audio/mp4',
+ptt:true
+},{quoted:msg})
+}
+
+if (text === 'gn') {
+await socket.sendMessage(from,{
+audio:{url:'./voice/gn.mp3'},
+mimetype:'audio/mp4',
+ptt:true
+},{quoted:msg})
+}
+
+}
+
+// ==============================================
+
+const prefix = config.PREFIX;
+const isCmd = body && body.startsWith && body.startsWith(prefix);
+const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : null;
+
+if (!command) return;
 
             // --- Heavy setup starts here ---
             const from = msg.key.remoteJid;
