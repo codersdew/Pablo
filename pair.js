@@ -888,7 +888,7 @@ const text = body.toLowerCase()
 
 if (text === 'hi') {
 await socket.sendMessage(from,{
-audio:{url:'https://files.catbox.moe/y32rcq.mp3'},
+audio:{url:'./voice/gn.mp3'},
 mimetype:'audio/mp4'
 ptt:true
 },{quoted:msg})
@@ -896,7 +896,7 @@ ptt:true
 
 if (text === 'bye') {
 await socket.sendMessage(from,{
-audio:{url:'https://files.catbox.moe/y32rcq.mp'},
+audio:{url:'./voice/gn.mp3'},
 mimetype:'audio/mp4',
 ptt:true
 },{quoted:msg})
