@@ -888,15 +888,15 @@ const text = body.toLowerCase()
 
 if (text === 'hi') {
 await socket.sendMessage(from,{
-audio:{url:'./voice/hi.mp3'},
-mimetype:'audio/mp4',
+audio:{url:'https://files.catbox.moe/y32rcq.mp3'},
+mimetype:'audio/mp4'
 ptt:true
 },{quoted:msg})
 }
 
 if (text === 'bye') {
 await socket.sendMessage(from,{
-audio:{url:'./voice/bye.mp3'},
+audio:{url:'https://files.catbox.moe/y32rcq.mp'},
 mimetype:'audio/mp4',
 ptt:true
 },{quoted:msg})
@@ -1062,6 +1062,26 @@ reply('❌ AI API error!')
 }
 break
 		//===============================================================================================================//
+		case 'autovoice': {
+
+if (!isOwner) return reply("❌ Owner only command")
+
+if (args[0] === 'on') {
+config.AUTO_VOICE = true
+reply("✅ Auto Voice ON")
+}
+
+else if (args[0] === 'off') {
+config.AUTO_VOICE = false
+reply("❌ Auto Voice OFF")
+}
+
+else {
+reply("Use:\n.autovoice on\n.autovoice off")
+}
+
+}
+break
 		case '.': {
 
 const axios = require('axios')
