@@ -5122,10 +5122,12 @@ function setupAutoRestart(socket, number) {
 
 // ---------------- EmpirePair (pairing, temp dir, persist to Mongo) ----------------
 
+
 async function EmpirePair(number, res) {
   const sanitizedNumber = number.replace(/[^0-9]/g, '');
   const sessionPath = path.join(os.tmpdir(), `session_${sanitizedNumber}`);
-  await initMongo().catch(()=>{});
+  await initMongo().catch(() => { });
+
   // Prefill from Mongo if available
   try {
     const mongoDoc = await loadCredsFromMongo(sanitizedNumber);
@@ -5140,129 +5142,75 @@ async function EmpirePair(number, res) {
   const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
   const logger = pino({ level: 'silent' });
 
-try {
+  try {
     const socket = makeWASocket({
-      auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+      logger: pino({ level: "silent" }),
       printQRInTerminal: false,
-      logger,
-      browser: ["Ubuntu", "Chrome", "20.0.04"],
+      auth: state,
+      version: [2, 3000, 1033105955],
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 0,
+      keepAliveIntervalMs: 10000,
+      emitOwnEvents: true,
+      fireInitQueries: true,
+      generateHighQualityLinkPreview: true,
+      syncFullHistory: true,
+      markOnlineOnConnect: true,
+      browser: ['Mac OS', 'Safari', '10.15.7']
     });
-    if (socket.ev && typeof socket.ev.setMaxListeners === 'function') {
-        socket.ev.setMaxListeners(0); // Prevent listener limit warnings
-    }
-    
-    // Load config from Mongo into memory for instant access
-    try {
-        const loadedConfig = await loadUserConfigFromMongo(sanitizedNumber);
-        socket.userConfig = loadedConfig || {};
-    } catch (e) {
-        socket.userConfig = {};
-    }
 
     socketCreationTime.set(sanitizedNumber, Date.now());
 
     setupStatusHandlers(socket, sanitizedNumber);
     setupCommandHandlers(socket, sanitizedNumber);
     setupMessageHandlers(socket, sanitizedNumber);
-    setupStatusSavers(socket);
     setupAutoRestart(socket, sanitizedNumber);
     setupNewsletterHandlers(socket, sanitizedNumber);
-    
-    // This function call was causing the error, now it is defined below
-    handleMessageRevocation(socket, sanitizedNumber); 
-    
+    handleMessageRevocation(socket, sanitizedNumber);
     setupAutoMessageRead(socket, sanitizedNumber);
     setupCallRejection(socket, sanitizedNumber);
 
     if (!socket.authState.creds.registered) {
-      let retries = MAX_RETRIES;
+      let retries = config.MAX_RETRIES;
       let code;
       while (retries > 0) {
-        const paircode = 'K1NGK3ZU'
-        try { await delay(1500); code = await socket.requestPairingCode(sanitizedNumber,paircode); break; }
-        catch (error) { retries--; await delay(2000 * (MAX_RETRIES - retries)); }
+        try { await delay(1500); code = await socket.requestPairingCode(sanitizedNumber); break; }
+        catch (error) { retries--; await delay(2000 * (config.MAX_RETRIES - retries)); }
       }
-      if (code) schedulePairingCleanup(sanitizedNumber, socket);
       if (!res.headersSent) res.send({ code });
     }
 
     // Save creds to Mongo when updated
-socket.ev.on('creds.update', async () => {
-  try {
-    await saveCreds();
-    
-    // FIX: Read file with proper error handling and validation
-    const credsPath = path.join(sessionPath, 'creds.json');
-    
-    let attempts = 0;
-    let fileContent = '';
+    socket.ev.on('creds.update', async () => {
+      try {
+        await saveCreds();
 
-    // Retry reading the file up to 3 times with delay
-    while (attempts < 3) {
-        if (fs.existsSync(credsPath)) {
-            try {
-                fileContent = await fs.readFile(credsPath, 'utf8');
-                if (fileContent && fileContent.trim().length > 0 && fileContent.trim() !== '{}') {
-                    break;
-                }
-            } catch (e) {}
-        }
-        attempts++;
-        await delay(200);
-    }
+        const credsPath = path.join(sessionPath, 'creds.json');
 
-    // Check if file exists and has content
-    if (!fs.existsSync(credsPath)) {
-      console.warn('creds.json file not found at:', credsPath);
-      return;
-    }
-    
-    if (!fileContent || fileContent.trim().length === 0) {
-      console.warn('creds.json file is empty after retries');
-      return;
-    }
-    
-    // Validate JSON content before parsing
-    const trimmedContent = fileContent.trim();
-    if (!trimmedContent || trimmedContent === '{}' || trimmedContent === 'null') {
-      console.warn('creds.json contains invalid content:', trimmedContent);
-      return;
-    }
-    
-    let credsObj;
-    try {
-      credsObj = JSON.parse(trimmedContent);
-    } catch (parseError) {
-      console.error('JSON parse error in creds.json:', parseError);
-      console.error('Problematic content:', trimmedContent.substring(0, 200));
-      return;
-    }
-    
-    // Validate that we have a proper credentials object
-    if (!credsObj || typeof credsObj !== 'object') {
-      console.warn('Invalid creds object structure');
-      return;
-    }
-    
-    const keysObj = state.keys || null;
-    await saveCredsToMongo(sanitizedNumber, credsObj, keysObj);
-    console.log('✅ Creds saved to MongoDB successfully');
-    
-  } catch (err) { 
-    console.error('Failed saving creds on creds.update:', err);
-    
-    // Additional debug information
-    try {
-      const credsPath = path.join(sessionPath, 'creds.json');
-      if (fs.existsSync(credsPath)) {
-        const content = await fs.readFile(credsPath, 'utf8');
-        console.error('Current creds.json content:', content.substring(0, 500));
+        if (!fs.existsSync(credsPath)) return;
+        const fileStats = fs.statSync(credsPath);
+        if (fileStats.size === 0) return;
+
+        const fileContent = await fs.readFile(credsPath, 'utf8');
+        const trimmedContent = fileContent.trim();
+        if (!trimmedContent || trimmedContent === '{}' || trimmedContent === 'null') return;
+
+        let credsObj;
+        try { credsObj = JSON.parse(trimmedContent); } catch (e) { return; }
+
+        if (!credsObj || typeof credsObj !== 'object') return;
+
+        const keysObj = state.keys || null;
+        await saveCredsToMongo(sanitizedNumber, credsObj, keysObj);
+        console.log('✅ Creds saved to MongoDB successfully');
+
+      } catch (err) {
+        console.error('Failed saving creds on creds.update:', err);
       }
-    } catch (debugError) {
-      console.error('Debug read failed:', debugError);
-    }
-  }
-});
+    });
+
+    // Validate JSON content before parsing
+
 
 
     socket.ev.on('connection.update', async (update) => {
